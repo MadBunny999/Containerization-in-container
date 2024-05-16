@@ -18,4 +18,4 @@ RUN airflow users create \
 
 EXPOSE 8080
 
-CMD airflow webserver --port 8080
+CMD ["airflow", "webserver", "--port", "8080"]
