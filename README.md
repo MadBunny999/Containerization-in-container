@@ -18,7 +18,7 @@ docker run -v ./dags:/opt/airflow/dags -p 8080:8080 --name airflow airflow
 |:-|:-|
 | `FROM apache/airflow:latest` | `FROM apache/airflow:slim-latest-python3.9`|
 |||
-| `ARG username=admin` <br> `ARG password=admin` <br>`RUN airflow db init && airflow users create \` <br> `                        --username ${username} \` <br> `                        --password ${password}` | `RUN airflow users create \` <br> `    --username admin \` <br> `    --password admin \`|
+| `RUN airflow users create \` <br> `    --username admin \` <br> `    --password admin \`| `ARG username=admin` <br> `ARG password=admin` <br>`RUN airflow db init && airflow users create \` <br> `                        --username ${username} \` <br> `                        --password ${password}` |
 |||
 |`RUN apt-get update` <br> `RUN apt-get -y upgrade` <br> `RUN apt-get -y install python3.11`|`RUN apt-get update && apt-get -y upgrade && apt-get -y install python3.11`|
 
