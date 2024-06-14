@@ -67,7 +67,21 @@ spec:
                 name: postgres-secret
           volumeMounts:
             - name: postgres-volume
-              mountPath: /data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec: 
+              command:
+              - /bin/sh
+              - -c
+              - exec pg_isready -U "postgres"
+            periodSeconds: 30
+          readinessProbe:
+          exec: 
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "postgres"
+          periodSeconds: 10
       volumes:
       - name: postgres-volume
         hostPath:
