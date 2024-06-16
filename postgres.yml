@@ -5,8 +5,8 @@ metadata:
   labels:
     app: postgres
 data:
-  POSTGRES_DB: "postgres"
-  POSTGRES_USER: "postgres"
+  POSTGRES_DB: "airflow"
+  POSTGRES_USER: "airflow"
 ---
 apiVersion: v1
 kind: Secret
@@ -16,7 +16,7 @@ metadata:
     app: postgres
 type: Opaque
 stringData:
-  POSTGRES_PASSWORD: "password"
+  POSTGRES_PASSWORD: "airflow"
 ---
 apiVersion: v1
 kind: Service
@@ -73,16 +73,16 @@ spec:
               command:
               - /bin/sh
               - -c
-              - exec pg_isready -U "postgres"
+              - exec pg_isready -U airflow
             periodSeconds: 30
           readinessProbe:
-          exec: 
-            command:
-            - /bin/sh
-            - -c
-            - exec pg_isready -U "postgres"
-          periodSeconds: 10
+            exec: 
+              command:
+              - /bin/sh
+              - -c
+              - exec pg_isready -U airflow
+            periodSeconds: 10
       volumes:
       - name: postgres-volume
         hostPath:
-          path: ./db/data
+          path: /home/daniil/programming/Containerization-in-container/db/data

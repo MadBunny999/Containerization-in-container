@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-configmap
+  labels:
+    app: airflow
+data:
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CORE__FERNET_KEY: ''
+  AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+  AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+  AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  labels:
+    app: postgres
+type: Opaque
+stringData:
+  AIRFLOW_ADMIN: "admin"
+  AIRFLOW_PASSWORD: "password"
+  FIRSTNAME: "Talented"
+  LASTNAME: "Hub"
+  EMAIL: "test@test.test"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow
+  labels:
+    app: airflow
+spec:
+  type: NodePort
+  ports:
+   - port: 8080
+  selector:
+   app: airflow
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow
+  labels:
+    app: airflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow
+  template:
+    metadata:
+      labels:
+        app: airflow
+    spec:
+      containers:
+      - name: airflow-webserver
+        image: ???
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        imagePullPolicy: "IfNotPresent"
+        ports:
+          - containerPort: 8080
+        envFrom:
+          - configMapRef:
+              name: airflow-configmap
+          - secretRef:
+                name: airflow-secret
