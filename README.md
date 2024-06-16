@@ -3,7 +3,7 @@
 
 ### 1. Установка kubectl и minikube. Запуск всего этого добра
 
-Устанавливаем kubectl с сайта k8s (У меня убунту)
+Устанавливаем kubectl с сайта k8s (это для Linux)
 ![kubectl](./images/kubectl.png)
 
 Устанавливаем minikube
