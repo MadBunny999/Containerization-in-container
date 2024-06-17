@@ -85,4 +85,4 @@ spec:
       volumes:
       - name: postgres-volume
         hostPath:
-          path: /home/daniil/programming/Containerization-in-container/db/data
+          path: /mnt/db/data

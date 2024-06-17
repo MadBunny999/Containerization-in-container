@@ -6,7 +6,7 @@ metadata:
     app: airflow
 data:
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-service/airflow
   AIRFLOW__CORE__FERNET_KEY: ''
   AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -16,16 +16,16 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: postgres-secret
+  name: airflow-secret
   labels:
-    app: postgres
+    app: airflow
 type: Opaque
 stringData:
   AIRFLOW_ADMIN: "admin"
-  AIRFLOW_PASSWORD: "password"
-  FIRSTNAME: "Talented"
-  LASTNAME: "Hub"
-  EMAIL: "test@test.test"
+  AIRFLOW_ADMIN_PASSWORD: "admin"
+  AIRFLOW_ADMIN_FIRSTNAME: "Talented"
+  AIRFLOW_ADMIN_LASTNAME: "Hub"
+  AIRFLOW_ADMIN_EMAIL: "test@test.test"
 ---
 apiVersion: v1
 kind: Service
@@ -56,21 +56,105 @@ spec:
       labels:
         app: airflow
     spec:
+      initContainers:
+      - name: init-airflow
+        image: custom_airflow:latest
+        command: ["/bin/sh", "-c", "airflow db init && airflow users create --username $(AIRFLOW_ADMIN) --password $(AIRFLOW_ADMIN_PASSWORD) --firstname $(AIRFLOW_ADMIN_FIRSTNAME) --lastname $(AIRFLOW_ADMIN_LASTNAME) --role Admin --email $(AIRFLOW_ADMIN_EMAIL)"]
+        envFrom:
+        - configMapRef:
+            name: airflow-configmap
+        - secretRef:
+            name: airflow-secret
+        imagePullPolicy: Never
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+          - name: dags-volume
+            mountPath: /opt/airflow/dags
+          - name: logs-volume
+            mountPath: /opt/airflow/logs
+          - name: plugins-volume
+            mountPath: /opt/airflow/plugins
       containers:
       - name: airflow-webserver
-        image: ???
-        resources:
-          limits:
-            cpu: 200m
-            memory: 256Mi
-          requests:
-            cpu: 100m
-            memory: 128Mi
-        imagePullPolicy: "IfNotPresent"
+        image: custom_airflow:latest
+        command: ["/bin/sh", "-c", "airflow webserver"]
+        imagePullPolicy: "Never"
         ports:
           - containerPort: 8080
         envFrom:
           - configMapRef:
               name: airflow-configmap
           - secretRef:
-                name: airflow-secret
+              name: airflow-secret
+        volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+            - name: logs-volume
+              mountPath: /opt/airflow/logs
+            - name: plugins-volume
+              mountPath: /opt/airflow/plugins
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+          periodSeconds: 10
+        securityContext:
+          runAsUser: 0
+      - name: airflow-scheduler
+        image: custom_airflow:latest
+        command: ["/bin/sh", "-c", "airflow scheduler"]
+        imagePullPolicy: "Never"
+        ports:
+          - containerPort: 8974
+        envFrom:
+          - configMapRef:
+              name: airflow-configmap
+          - secretRef:
+              name: airflow-secret
+        volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+            - name: logs-volume
+              mountPath: /opt/airflow/logs
+            - name: plugins-volume
+              mountPath: /opt/airflow/plugins
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8974
+            httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8974
+            httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+          periodSeconds: 10
+        securityContext:
+          runAsUser: 0
+      volumes:
+      - name: dags-volume
+        hostPath:
+          path: /mnt/dags
+      - name: logs-volume
+        hostPath:
+          path: /mnt/logs
+      - name: plugins-volume
+        hostPath:
+          path: /mnt/plugins

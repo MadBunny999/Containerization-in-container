@@ -1,54 +1,59 @@
 # Containerization-in-container
 
-
-### 1. Установка kubectl и minikube. Запуск всего этого добра
-
-Устанавливаем kubectl с сайта k8s (У меня убунту)
-![kubectl](./images/kubectl.png)
-
-Устанавливаем minikube
-![](./images/minikube.png)
-
-Запускаем minikube 
-![](./images/minikube_start.png)
-
-И смотрим на него
-![](./images/minikube_in_docker.png)
-
-Все здорово!
-
-### 2. Запускаем postgres и minikube
-
-Выполняем последовательно:
+1) Запускаем minikube
 
 ```bash
-kubectl create -f pg_configmap.yml
-kubectl create -f pg_secret.yml 
-kubectl create -f pg_service.yml 
-kubectl create -f pg_deployment.yml
-
-kubectl create nextcloud.yml
-kubectl expose deployment nextcloud --type=NodePort --port=80
-minikube service nextcloud
+minikube start
 ```
 
-Восхищаемся собственным облаком
+2) Маунтим dags к minikube (можно и все остальные, но я тестировал только с dags)
 
-![](./images/nextcloud.png)
+```bash
+minikube mount ./dags:/mnt/dags
+```
 
+3) Запускаем postgres 
 
+```bash
+kubectl create -f postgres.yml
+```
 
-**Вопрос 1: важен ли порядок выполнения этих манифестов? Почему?**
-Да, порядок выполнения этих манифестов для Kubernetes имеет значение, так как deployment манифест, зависит от configmap манифеста. Оптимальный порядок выполнения:
+4) Билдим custom docker-image внутри minikube
 
-pg_configmap.yml: ConfigMap должен быть создан первым, так как он содержит конфигурационные данные, которые будут использоваться в деплойменте.
-pg_service.yml: Service должен быть создан вторым, чтобы обеспечить доступ к поду с PostgreSQL, который будет создан деплойментом.
-pg_deployment.yml: Deployment должен быть создан последним, так как он использует ConfigMap для конфигурации контейнера
+4.1. Переходим "внутрь" minikube
 
+```bash
+eval $(minikube docker-env)
+```
 
-**Вопрос 2: что (и почему) произойдет, если отскейлить количество реплик postgres-deployment в 0, затем обратно в 1, после чего попробовать снова зайти на Nextcloud?**
+4.2. Билдим image
 
-Nextcloud перестанет запускаться (см картинку ниже), потому что он предварительно сохранил в БД нужные ему данные, а из-за перезапуска БД (и отсутствие volume), данные потерялись. Это можно исправить добавлением постоянного volume
+```bash
+docker build -t custom_airflow .
+```
 
-![restart](./images/restart_db.png)
+4.3. Проверяем, что image появился 
 
+```bash
+docker images
+```
+
+![](./images/images.png)
+
+4.4. Выходим из minikube
+
+```bash
+eval $(minikube docker-env --unset)
+```
+
+5) Запускаем airflow 
+
+```bash
+kubectl create -f airflow.yml
+```
+
+6) подключаемся извне и радуемся результату
+
+```bash
+minikube service airflow
+```
