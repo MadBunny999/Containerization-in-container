@@ -27,7 +27,7 @@ kubectl create -f pg_secret.yml
 kubectl create -f pg_service.yml 
 kubectl create -f pg_deployment.yml
 
-kubectl create nextcloud.yml
+kubectl create -f nextcloud.yml
 kubectl expose deployment nextcloud --type=NodePort --port=80
 minikube service nextcloud
 ```
